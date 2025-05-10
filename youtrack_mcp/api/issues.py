@@ -45,39 +45,39 @@ class IssuesClient:
         self.client = client
     
     def get_issue(self, issue_id: str) -> Issue:
-    """
-    Get an issue by ID.
-    
-    Args:
-        issue_id: The issue ID or readable ID (e.g., PROJECT-123)
+        """
+        Get an issue by ID.
         
-    Returns:
-        The issue data with comments
-    """
-    response = self.client.get(f"issues/{issue_id}")
-    
-    # If the response doesn't have all needed fields, fetch more details
-    if isinstance(response, dict) and response.get('$type') == 'Issue' and 'summary' not in response:
-        # Get additional fields we need
-        fields = "summary,description,created,updated,project,reporter,assignee,customFields"
-        detailed_response = self.client.get(f"issues/{issue_id}?fields={fields}")
-        response = detailed_response
-    
-    # Fetch comments separately and add them to the response
-    try:
-        comments_fields = "id,author(login,name,id),text,created,updated,deleted"
-        comments_response = self.client.get(f"issues/{issue_id}/comments?fields={comments_fields}")
+        Args:
+            issue_id: The issue ID or readable ID (e.g., PROJECT-123)
+            
+        Returns:
+            The issue data with comments
+        """
+        response = self.client.get(f"issues/{issue_id}")
         
-        # Add comments to the response
-        if isinstance(response, dict):
-            response['comments'] = comments_response
-    except Exception as e:
-        logger.warning(f"Could not fetch comments for issue {issue_id}: {str(e)}")
-        # Continue without comments if there's an error
-        if isinstance(response, dict):
-            response['comments'] = []
-    
-    return Issue.model_validate(response)
+        # If the response doesn't have all needed fields, fetch more details
+        if isinstance(response, dict) and response.get('$type') == 'Issue' and 'summary' not in response:
+            # Get additional fields we need
+            fields = "summary,description,created,updated,project,reporter,assignee,customFields"
+            detailed_response = self.client.get(f"issues/{issue_id}?fields={fields}")
+            response = detailed_response
+        
+        # Fetch comments separately and add them to the response
+        try:
+            comments_fields = "id,author(login,name,id),text,created,updated,deleted"
+            comments_response = self.client.get(f"issues/{issue_id}/comments?fields={comments_fields}")
+            
+            # Add comments to the response
+            if isinstance(response, dict):
+                response['comments'] = comments_response
+        except Exception as e:
+            logger.warning(f"Could not fetch comments for issue {issue_id}: {str(e)}")
+            # Continue without comments if there's an error
+            if isinstance(response, dict):
+                response['comments'] = []
+        
+        return Issue.model_validate(response)
     
     def create_issue(self, 
                      project_id: str, 

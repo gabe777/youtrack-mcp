@@ -32,16 +32,30 @@ class IssueTools:
             issue_id: The issue ID or readable ID (e.g., PROJECT-123)
             
         Returns:
-            JSON string with issue information
+            JSON string with issue information including comments
         """
         try:
             # First try to get the issue data with explicit fields
-            fields = "id,summary,description,created,updated,project(id,name,shortName),reporter(id,login,name),assignee(id,login,name),customFields(id,name,value)"
+            fields = "id,summary,description,created,updated,project(id,name,shortName),reporter(id,login,name),assignee(id,login,name),customFields(id,name,value(id,name,presentation,localizedName))"
             raw_issue = self.client.get(f"issues/{issue_id}?fields={fields}")
             
             # If we got a minimal response, enhance it with default values
             if isinstance(raw_issue, dict) and raw_issue.get('$type') == 'Issue' and 'summary' not in raw_issue:
                 raw_issue['summary'] = f"Issue {issue_id}"  # Provide a default summary
+            
+            # Fetch comments separately and add them to the issue
+            try:
+                comments_fields = "id,author(login,name,id),text,created,updated,deleted"
+                comments = self.client.get(f"issues/{issue_id}/comments?fields={comments_fields}")
+                
+                # Add comments to the issue data
+                if isinstance(raw_issue, dict):
+                    raw_issue['comments'] = comments
+            except Exception as e:
+                logger.warning(f"Could not fetch comments for issue {issue_id}: {str(e)}")
+                # Continue without comments if there's an error
+                if isinstance(raw_issue, dict):
+                    raw_issue['comments'] = []
             
             # Return the raw issue data directly - avoid model validation issues
             return json.dumps(raw_issue, indent=2)
